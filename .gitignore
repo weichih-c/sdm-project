@@ -1,3 +1,13 @@
+########################################################################
+######  This file is about git ignore file
+######  File in these naming or directory beneath will be ignore in git control. 
+########################################################################
+
+# SQLite3 database files:
+*.db
+*.sqlite3
+*.sqlite
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -66,7 +76,7 @@ docs/_build/
 # PyBuilder
 target/
 
-# IPython Notebook
+# Jupyter Notebook
 .ipynb_checkpoints
 
 # pyenv
@@ -79,6 +89,7 @@ celerybeat-schedule
 .env
 
 # virtualenv
+.venv/
 venv/
 ENV/
 
