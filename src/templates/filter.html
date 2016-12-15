@@ -1,0 +1,347 @@
+<!-- 這個頁面是篩選頁 -->
+
+{% load staticfiles %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>MoneyKeeper</title>
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    <link href="{% static 'css/base.css' %}" rel="stylesheet">
+    	<!-- Bootstrap Core CSS -->
+    <link href="{% static 'css/bootstrap.css' %}" rel="stylesheet">
+
+		<!-- Custom CSS -->
+    <link href="{% static 'dist/css/metisMenu.min.css' %}" rel="stylesheet">
+    <link href="{% static 'dist/css/sb-admin-2.css' %}" rel="stylesheet">
+
+        <!--datepicker CSS-->
+    <link href="{% static 'css/bootstrap-responsive.css' %}" rel="stylesheet">
+
+    	<!--datatables CSS-->
+    <link href="{% static 'datatables/jquery-ui.css' %}" rel="stylesheet">
+    <link href="{% static 'datatables/dataTables.jqueryui.min.css' %}" rel="stylesheet">
+
+    	<!-- Custom Fonts -->
+    <link href="{% static 'font-awesome/css/font-awesome.min.css' %}" rel="stylesheet" type="text/css">
+
+		<!-- jQuery -->
+    <script src="{% static 'js/jquery.js' %}"></script>
+    <!-- <script src="{% static 'js/jquery-3.1.1.min.js' %}"></script> -->
+
+    	<!-- Bootstrap Core JavaScript -->
+    <script src="{% static 'js/bootstrap.min.js' %}"></script>
+
+    	<!-- datatables JavaScript -->
+    <script src="{% static 'datatables/jquery.dataTables.min.js' %}"></script>
+    <script src="{% static 'datatables/dataTables.jqueryui.min.js' %}"></script>
+
+		<!-- Custom Theme JavaScript -->
+    <script src="{% static 'dist/js/metisMenu.min.js' %}"></script>
+    <script src="{% static 'dist/js/sb-admin-2.js' %}"></script>
+
+
+<script type="text/javascript">
+	$(document).ready(function() {
+        var table = $('#example').DataTable();
+        $('#example tbody').on( 'click', 'tr', function () {
+            //點同一個row,取消選擇
+            if ( $(this).hasClass('selected') ) {
+                $(this).removeClass('selected');
+            //取消已選
+            }
+            else {
+                table.$('tr.selected').removeClass('selected');
+                $(this).addClass('selected');
+            }
+
+            $(this).find('td').each (function() {
+                console.log($(this).html());
+            });
+            //console.log($(this).context);
+            //console.log($('#money').html());
+                                          
+        } );
+        
+        //點按鈕刪除
+        $('#btn_del').click( function () {
+            console.log(table.row('.selected').data()[7]);
+            var id = table.row('.selected').data()[7];
+            $.ajax({
+               dataType: 'json',
+               url: "/filterDelRecord/",
+                type:"POST",
+                data: {id: id},
+                success: function(result){
+                    console.log("jaja");
+                    console.log(result.answer);
+                    table.row('.selected').remove().draw( false );
+                    var url = window.location.href;
+                    window.location = url;
+                },
+                error: function(result, status){
+                    console.log(status);
+                    alert("刪除失敗")
+                }
+            });
+        } );
+
+        //左右方向箭號的事件
+        $('#btn_left,#btn_right').click(function(e){
+            var idClick = e.target.id;
+            var pathname = window.location.pathname; // Returns path only
+            var pageHeader_date;
+            var sign;
+            console.log(pathname);
+            console.log(idClick); 
+            if(pathname == "/filter/"){
+                pageHeader_date = $('#pageHeader_date').html();
+                sign = "day";
+            }else if(pathname == "/getReceiptByWeek/"){
+                pageHeader_date = $('#pageHeader_date').html();
+                sign = "week";
+            }else if(pathname == "/getReceiptByMon/"){
+                pageHeader_date = $('#pageHeader_date').html();
+                sign = "month";
+            }else{
+                pageHeader_date = $('#pageHeader_date').html();
+                sign = "year";
+            }
+            console.log(pageHeader_date);
+            console.log(typeof(pageHeader_date));
+            $.ajax({
+               dataType: 'json',
+               url: "/backwardTime/",
+                type:"POST",
+                data: {pageHeader_date : pageHeader_date, sign: sign, id: idClick},
+                success: function(result){
+                    $('#example tbody tr').remove();
+                    console.log(result.tableContent);
+                    $('#example tbody').append(result.tableContent);
+                    $('#pageHeader_date').text(result.title);
+                    $('#pageHeader_money').text("總支出"+result.cost);
+                    $('#totalCost').text("總支出"+result.cost);
+                    $('#totalIncome').text("總收入"+result.income);
+                    $('#balance').text("餘額"+result.balance);
+                },
+                error: function(result, status){
+                    console.log(status);
+                    console.log(result);
+                    alert("抓新日期失敗")
+                }
+            });
+        });
+
+	} );
+</script>
+
+</head>
+
+<body>
+
+    <!-- whole page wrapper -->
+    <div id="wrapper container">
+
+        <!-- Navigation -->
+        <nav class="navbar navbar-light navbar-static-top" role="navigation">
+            <div class="navbar-header">
+                <a class="navbar-brand glyphicon glyphicon-book" href="/dashboard/"></a>
+                <a  href="/dashboard/"><img src="../static/image/logo.png" alt="logo" class="navbar-brand glyphicon glyphicon-book" height="30px" width="200px" border="0" /></a>
+            </div><!-- /.navbar-header -->
+
+            <ul class="nav navbar-top-links navbar-right">
+                
+                <!-- start bell dropdown -->
+                <li class="dropdown">
+                    <a class="dropdown-toggle" data-toggle="dropdown" href="#" style="color: white;">
+                        <i class="fa fa-bell fa-fw"></i> <i class="fa fa-caret-down"></i>
+                    </a>
+                    <ul class="dropdown-menu dropdown-alerts">
+                        <li>
+                            <a href="#">
+                                <div>
+                                    <i class="fa fa-comment fa-fw"></i> 以後會放提醒內容
+                                </div>
+                            </a>
+                        </li>
+                        <li class="divider"></li>
+                        <li>
+                            <a href="#">
+                                <div>
+                                    <i class="fa fa-comment fa-fw"></i> 以後會放提醒內容
+                                </div>
+                            </a>
+                        </li>
+                        <li class="divider"></li>
+                        <li>
+                            <a href="#">
+                                <strong>See All Alerts</strong>
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        </li>
+                    </ul><!-- /.dropdown-alerts -->
+                </li><!-- /.dropdown -->
+
+                <!-- start user dropdown -->
+                <li class="dropdown">
+                    <a class="dropdown-toggle" data-toggle="dropdown" href="#" style="color: white;">
+                        <i class="fa fa-user fa-fw"></i> <i class="fa fa-caret-down"></i>
+                    </a>
+                    <ul class="dropdown-menu dropdown-user">
+                        <li><a href="/setting/"><i class="fa fa-gear fa-fw"></i> Settings</a>
+                        </li>
+                        <li class="divider"></li>
+                        <li><a href="/logout/"><i class="fa fa-sign-out fa-fw"></i> Logout</a>
+                        </li>
+                    </ul>
+                    
+                </li><!-- /.dropdown-user -->
+                
+            </ul><!-- /.dropdown -->
+            
+        </nav><!-- /.navbar-top-links -->
+
+        <!-- main container -->
+        <div class="container-fluid" style="background-color: rgb(229, 228, 219);">
+        	<div class="row col-sm-2 col-md-2 left-side">
+                <div class="panel-group collapse in" id="accordion" aria-expanded="true">
+
+                    <!-- start panel 以日瀏覽 -->
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <a href="/filter/"><span class="glyphicon glyphicon-menu-right">
+                                </span>以日瀏覽</a>
+                            </h4>
+                        </div>
+                    </div>  <!-- /.panel 以日瀏覽 -->
+
+                    <!-- start panel 以週瀏覽 -->
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <a href="/getReceiptByWeek/"><span class="glyphicon glyphicon-menu-right">
+                                </span>以週瀏覽</a>
+                            </h4>
+                        </div>
+                    </div>  <!-- /.panel 以週瀏覽 -->
+
+                    <!-- start panel 以月瀏覽 -->
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <a href="/getReceiptByMon/"><span class="glyphicon glyphicon-menu-right">
+                                </span>以月瀏覽</a>
+                            </h4>
+                        </div>
+                    </div>  <!-- /.panel 以月瀏覽 -->
+
+                    <!-- start panel 以年瀏覽 -->
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title">
+                                <a href="/getReceiptByYr/"><span class="glyphicon glyphicon-menu-right">
+                                </span>以年瀏覽</a>
+                            </h4>
+                        </div>
+                    </div>  <!-- /.panel 以年瀏覽 -->
+
+                </div>  <!-- /.panel group -->
+            </div>  <!-- /.left-side row -->
+
+
+	        <!-- Main container -->
+	        <div id="page-wrapper" class="col-sm-10 col-md-10" style="min-height: 167px; background-color: rgb(229, 228, 219);">
+	        	<div class="container-fluid col-xs-12 col-sm-12">
+			    	<p style="text-align: center; font-size: 100px;">
+			    	</p>
+			    	<div class="row">
+                        <div class="col-lg-12" style="background-color: #fff; margin-top: 20px; padding-bottom: 20px;">
+                            <div id="titleMenu" class="page-header" style="text-align: center;">
+                                <form>
+                                	<span class="glyphicon glyphicon-chevron-left" aria-hidden="true" id="btn_left"></span>
+                                	<span class="label label-default" id="pageHeader_date">{{title}}</span>
+                               		<span class="label label-default"  id="pageHeader_money">總支出{{totalCost}}</span>
+                                   	<span class="glyphicon glyphicon-chevron-right" aria-hidden="true" id="btn_right"></span>      
+                                </form>
+                            </div>
+                            <div>
+                                <button id="btn_del" class="">刪除</button>
+                                <button style="display: none">修改</button>
+                                <label id="totalCost">總支出{{totalCost}}</label>
+                                <label id="totalIncome">總收入{{totalIncome}}</label>
+                                <label id="balance">結餘{{balance}}</label>
+                            </div>
+                            
+                            <div>
+                            	<table id="example" class="display" cellspacing="0" width="100%">
+							        <thead>
+							            <tr>
+							                <th>分類</th>
+                                            <th>次分類</th>
+							                <th>備註</th>
+							                <th>支出/收入</th>
+							                <th>付款方式</th>
+							                <th>日期</th>
+							                <th>金額</th>
+                                            <th style="display: none">id</th>
+							            </tr>
+							        </thead>
+							        <tfoot>
+							            <tr>
+							                <th>分類</th>
+                                            <th>次分類</th>
+							                <th>備註</th>
+							                <th>支出/收入</th>
+							                <th>付款方式</th>
+							                <th>日期</th>
+							                <th>金額</th>
+                                            <th style="display: none">id</th>
+							            </tr>
+							        </tfoot>
+							        <tbody>
+                                        {% for choice in receipts %}
+							            <tr>
+							                <td>{{choice.subclassification.classification.classification_type}}</td>
+                                            <td>{{choice.subclassification}}</td>
+							                <td>{{choice.remark}}</td>
+							                <td>{{choice.incomeandexpense}}</td>
+							                <td>{{choice.payment}}</td>
+							                <td>{{choice.date}}</td>
+							                <td>{{choice.money}}</td>
+                                            <td style="display: none" id="ID">{{choice.id}}</td>
+							            </tr>
+                                        {% endfor %}
+							        </tbody>
+							    </table>
+                            </div>
+                        </div>
+                    </div><!-- /.row -->
+		    	</div><!-- /.container-fluid -->
+	    	</div><!-- /#page-wrapper (main container) -->
+        </div><!-- /.container-fluid (whole div below navbar) -->
+                   
+
+
+    </div><!-- /#wrapper (whole page)-->
+
+	
+
+</body>
+
+</html>
+
