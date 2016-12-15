@@ -166,7 +166,7 @@
 			table4deletionBtnHandler()	// 執行完動畫後做table4 handler().
 		});
 
-		// 按下週期性項目[刪除完畢]
+		// 按下週期性項目[確定刪除]
 		$("#table4-del-finish").click(function(){
 			var deltArr = [];
 			
@@ -175,13 +175,26 @@
 				deltArr.push( deltItem );	// 把要刪除的筆數加進陣列
 			});
 
-			var cout = "";
-			$.each(deltArr, function(index, value){		// 印出陣列內容
-				cout = cout + value + ';';
-				$("#table4 tr td:contains('"+value+"')").parent().remove();		// 把蘊含該值的記錄整個列刪除
-			});
-
-			alert("刪除的記錄有：" + cout);	// 要做post的話改這邊
+			//post
+			if(deltArr){
+            	$.ajax({
+                	url: "/deleteCyclicalExpenditure/",
+                	type:"POST",
+                	data: {deltArr : deltArr},
+                	success: function(rowcontent){
+						alert(rowcontent)
+                	    var cout = "";
+						$.each(deltArr, function(index, value){		// 印出陣列內容
+							cout = cout + value + ';';
+							$("#table4 tr td:contains('"+value+"')").parent().remove();		// 把蘊含該值的記錄整個列刪除
+						});
+						alert("刪除的記錄有：" + cout);
+                	},
+                	error: function(){
+                	    alert("刪除週期性項目失敗")
+                	}
+            	});
+        	}
 		});
 
 		// 確定刪除or取消刪除週期性項目的按鈕
@@ -336,23 +349,102 @@
 		var title = $("#periodic-item-name").val();
 		var paymentDate = $("#periodic-type").val() + ' ' + $("#pay-date").val();
 		var alertDate = $("#alert-daytype").val() + ' ' + $("#alert-date").val();
-
+		//
+		var expenditure_type;
+		switch ($("#periodic-type").val()){
+			case "每週" :
+				expenditure_type="week";
+				break;
+			default :
+				expenditure_type="month";
+		}
+		var expenditure_date;
+		switch ($("#pay-date").val()){
+			case "星期日" :
+				expenditure_date=7;
+				break;
+			case "星期一" :
+				expenditure_date=1;
+				break;
+			case "星期二" :
+				expenditure_date=2;
+				break;
+			case "星期三" : 
+				expenditure_date=3;
+				break;
+			case "星期四" : 
+				expenditure_date=4;
+				break;
+			case "星期五" : 
+				expenditure_date=5;
+				break;
+			case "星期六" :
+				expenditure_date=6;
+				break;
+			default :
+				var date = $("#pay-date").val().split("號");
+				expenditure_date=date[0];
+		}
+    	var reminder_type;
+		switch ($("#alert-daytype").val()){
+			case "每週" :
+				reminder_type="week";
+				break;
+			default :
+				reminder_type="month";
+		}
+    	var reminder_date;
+		switch ($("#alert-date").val()){
+			case "星期日" :
+				reminder_date=7;
+				break;
+			case "星期一" :
+				reminder_date=1;
+				break;
+			case "星期二" :
+				reminder_date=2;
+				break;
+			case "星期三" : 
+				reminder_date=3;
+				break;
+			case "星期四" : 
+				reminder_date=4;
+				break;
+			case "星期五" : 
+				reminder_date=5;
+				break;
+			case "星期六" :
+				reminder_date=6;
+				break;
+			default :
+				var date = $("#pay-date").val().split("號");
+				reminder_date=date[0];
+		}
+		//post
 		if( title.trim() ){
-			$("#table4").append("<tr><td>" + title + "</td><td>" + paymentDate + " </td><td>" + alertDate  
-				+ "</td><td><button type='button' class='btn btn-primary btn-sm periodic-date-setting' data-toggle='modal' data-target='#modal-periodic-edit'>設定</button> "
-				+ "<input type='checkbox' /></td></tr>");
-
-
-			// 在新的欄位上增加toggle button
-			$("#table4 tr:last-child td:last-child input").bootstrapToggle({
-				on: '通知開',
-				off: '通知關',
-				size: 'small',
-				onstyle: 'success',
-				offstyle: 'danger'
-			});
-
-			alert("新增成功!");
+            $.ajax({
+            	url: "/createCyclicalExpenditure/",
+            	type:"POST",
+            	data: {name:title, expenditure_type:expenditure_type, expenditure_date:expenditure_date, reminder_type:reminder_type, reminder_date:reminder_date},
+                success: function(repeated_name){
+					$("#table4").append("<tr><td>" + title + "</td><td>" + paymentDate + " </td><td>" + alertDate  
+					+ "</td><td><button type='button' class='btn btn-primary btn-sm periodic-date-setting' data-toggle='modal' data-target='#modal-periodic-edit'>設定</button> "
+					+ "<input type='checkbox' /></td></tr>");
+						
+					// 在新的欄位上增加toggle button
+					$("#table4 tr:last-child td:last-child input").bootstrapToggle({
+						on: '通知開',
+						off: '通知關',
+						size: 'small',
+						onstyle: 'success',
+						offstyle: 'danger'
+					});
+					alert("新增成功!");
+                },
+                error: function(){
+                	alert("刪除週期性項目失敗")
+                }
+            });
 		}else{
 			alert("缺少項目標題");
 		}
@@ -713,7 +805,7 @@
                     			style="background-image: url(/static/image/add.png);" data-toggle="modal" data-target="#modal-periodic"></button>
                     	<button type="button" class="edit-img-btn" id="btn-periodic-cost-del" 
                     			style="background-image: url(/static/image/delete.png);"></button>
-                 		<button type="button" class="btn btn-success btn-md table4-del-submit" id="table4-del-finish">刪除完畢</button>
+                 		<button type="button" class="btn btn-success btn-md table4-del-submit" id="table4-del-finish">確定刪除</button>
                     	<button type="button" class="btn btn-danger btn-md table4-del-submit" id="table4-del-cancel">取消刪除</button>
                     </legend>
 
