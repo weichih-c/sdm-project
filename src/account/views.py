@@ -34,13 +34,17 @@ def dashboard(request):
 
         periodic_notification_list = periodicItemDateCheck(member)
 
+        total_expense = get_total(cost_list)
+        total_income = get_total(revenue_list)
+
     return render(request, 'dashboard.html', {"cost_list": cost_list, "revenue_list": revenue_list, "food_list": food_list,
                                               "clothing_list": clothing_list, "housing_list": housing_list,
                                               "transportation_list": transportation_list, "education_list": education_list,
                                               "entertainment_list": entertainment_list, "others_list": others_list,
                                               "general_revenue_list": general_revenue_list, "invest_revenue_list": invest_revenue_list,
                                               "other_revenue_list": other_revenue_list, "periodic_notification_list": periodic_notification_list,
-                                              "periodic_notification_count": len(periodic_notification_list)})
+                                              "periodic_notification_count": len(periodic_notification_list),
+                                              "total_expense": total_expense, "total_income": total_income})
 
 
 def setting(request):
@@ -126,6 +130,13 @@ def create_receipt(request):
                                              incomeandexpense=incomeandexpense,
                                              member=member)
 
+        if incomeandexpense.income_type == 'expense':
+            receipt_list = Receipt.objects.filter(member=member, date=date.today(), incomeandexpense__income_type="expense")
+        else:
+            receipt_list = Receipt.objects.filter(member=member, date=date.today(), incomeandexpense__income_type="income")
+
+        total_value = get_total(receipt_list)
+
         cost_rowcontent = ""
         if new_receipt.remark:
             cost_rowcontent += "<tr><td><span class='glyphicon glyphicon-file text-success'></span><a href='#'> " \
@@ -154,26 +165,37 @@ def create_receipt(request):
             if category_budget_instance and category_budget_instance.is_reminded:
                 class_budget_check_result = classification_budget_calculate(member, classification)
 
-        message = {"rowcontent": cost_rowcontent, "budget_check": {"monthly": monthly_budget_check_result,
-                                                                   "class": class_budget_check_result}}
+        message = {"rowcontent": cost_rowcontent, "total_value": total_value,
+                   "budget_check": {"monthly": monthly_budget_check_result, "class": class_budget_check_result}}
 
     return HttpResponse(json.JSONEncoder().encode(message))
 
 
 def delete_receipt(request):
-
     if request.method == 'POST':
         print(request.POST)
+
+        # delete receipt
         member = Member.objects.filter(user__username=request.user).first()
         classification = Classification.objects.filter(classification_type=request.POST["category"]).first()
         subclass = SubClassification.objects.filter(name=request.POST["subcategory"], member=member, classification=classification).first()
         receipt = Receipt.objects.filter(money=request.POST["amount"], remark=request.POST["memo"],
-                                        date=datetime.strptime(request.POST["date"], "%Y/%m/%d"),
-                                        subclassification=subclass, member=member)
+                                         date=datetime.strptime(request.POST["date"], "%Y/%m/%d"),
+                                         subclassification=subclass, member=member).first()
         if receipt is not None:
-            # print(receipt)
             receipt.delete()
-    return HttpResponse(receipt)
+
+        # recount total
+        incomeandexpense = IncomeAndExpense.objects.filter(income_type=request.POST["record_type"]).first()
+        if incomeandexpense.income_type == 'expense':
+            receipt_list = Receipt.objects.filter(member=member, date=date.today(),
+                                                  incomeandexpense__income_type="expense")
+        else:
+            receipt_list = Receipt.objects.filter(member=member, date=date.today(),
+                                                  incomeandexpense__income_type="income")
+        total_value = get_total(receipt_list)
+
+    return HttpResponse(total_value)
 
 
 def create_subClassification(request):
@@ -529,7 +551,7 @@ def classification_budget_calculate(member, classification):
     if(classBudget > 0 and sumOfExpense > classBudget):
         alertMessage = "警告：本月{0}分類花費已超過當月預算".format(classification)
     elif(classBudgetThreshold > 0 and sumOfExpense > classBudgetThreshold):
-        alertMessage = "警告：本月{0}分類花費已超過 {1}".format(classification, classBudgetThreshold.encode('utf-8'))
+        alertMessage = "警告：本月{0}分類花費已超過 {1}".format(classification, classBudgetThreshold)
     else:
         alertMessage = "正常"
 
@@ -749,3 +771,11 @@ def periodicItemDateCheck(member):
 
     return notification_list
 
+
+def get_total(receipt_list):
+
+    total = 0
+    for receipt in receipt_list:
+        total += receipt.money
+
+    return total
